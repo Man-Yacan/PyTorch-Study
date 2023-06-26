@@ -5,7 +5,7 @@
 @Email: myxc@live.cn
 @Website: https://www.manyacan.com
 @software: PyCharm
-@file: 00.py
+@file: main.py
 @time: 2023/6/25 15:50
 """
 
