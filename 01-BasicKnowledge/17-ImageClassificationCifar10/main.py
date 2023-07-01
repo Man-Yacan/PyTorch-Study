@@ -8,6 +8,7 @@
 @file: main.py
 @time: 2023/6/26 21:04
 """
+import os
 import time
 import hues
 import torch
@@ -61,7 +62,7 @@ vgg_pretrained = torchvision.models.vgg16(weights=torchvision.models.VGG16_Weigh
 
 
 # Training function
-def train(dataloader, model, loss_fn, optimizer, verbose=True):
+def train(dataloader, model, loss_fn, optimizer, lr_scheduler=None, verbose=True):
     size = len(dataloader.dataset)
     num_batches = len(dataloader)  # dataloader中的批量样本数
     model.train()
@@ -78,6 +79,9 @@ def train(dataloader, model, loss_fn, optimizer, verbose=True):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+        if lr_scheduler:
+            lr_scheduler.step()
+
         if verbose:
             if batch % 50 == 0:
                 loss, current = loss.item(), batch * len(X)
@@ -90,7 +94,7 @@ def train(dataloader, model, loss_fn, optimizer, verbose=True):
 
 
 # Training function
-def test(dataloader, model, loss_fn, verbose=True, writer=None):
+def test(dataloader, model, loss_fn, verbose=True):
     size = len(dataloader.dataset)  # 样本总数
     num_batches = len(dataloader)  # dataloader中的批量样本数
     model.eval()
@@ -127,33 +131,40 @@ if __name__ == '__main__':
     # Optimizer
     learning_rate = 0.0001
     optimizer = torch.optim.SGD(vgg_pretrained.parameters(), lr=learning_rate)
+    # 学习率的衰减, 每经过5轮更新梯度，学习率衰减为原来的0.9
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=.9)
 
     # Using tensorboard to visualize network structure
-    writer = SummaryWriter('./logs')
+    LOG_DIR = 'logs'
+    if not os.path.exists(LOG_DIR):
+        os.mkdir(LOG_DIR)
+    writer = SummaryWriter(LOG_DIR)
 
     # Running model
-    epochs = 50
+    epochs = 300
     for i in range(epochs):
-        print(f"Epoch {i}\n-------------------------------")
+        print('+' * 25, f'Epoch {i}'.center(10), '+' * 25)
         train_loss, train_cor = train(train_loader, model, loss_fun, optimizer)
+        scheduler.step()
         test_loss, test_cor = test(test_loader, model, loss_fun)
         writer.add_scalar('Loss/Train', train_loss, i)
         writer.add_scalar('Loss/Test', test_loss, i)
         writer.add_scalar('Accuracy/Train', train_cor, i)
-        writer.add_scalar('Accuracy/Test', test_cor / len(test_data), i)
+        writer.add_scalar('Accuracy/Test', test_cor, i)
+        writer.add_scalar('Learning Rate', optimizer.state_dict()["param_groups"][0]["lr"], i)
 
     hues.success("Done!")
 
     # Saving model
     timer = time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime())
-    torch.save(model, f'./model/model_{timer}.pth')
+    MODEL_DIR = 'model'
+    if not os.path.exists(MODEL_DIR):
+        os.mkdir(MODEL_DIR)
+    torch.save(model, f'{MODEL_DIR}/model_{timer}.pth')
 
     # Saving the structure of model
-    X = None
-    for X, y in test_loader:
-        X = X.to(device)
-        break
-    writer.add_graph(vgg_pretrained, X)
+    demo_input = torch.ones(64, 3, 32, 32).to(device)  # batch_size=6, in_channels=3, height=28, weight=28.
+    writer.add_graph(model, demo_input)
 
     writer.close()  # Closing writer
     # tensorboard --logdir='logs'
