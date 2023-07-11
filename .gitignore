@@ -28,3 +28,10 @@
 05-Practice/00-ImageClassificationCifar10/data/cifar-10-python/cifar-10-batches-py/train_batch_3
 05-Practice/00-ImageClassificationCifar10/data/cifar-10-python/cifar-10-batches-py/train_batch_4
 05-Practice/00-ImageClassificationCifar10/data/cifar-10-python/cifar-10-batches-py/train_batch_5
+*.xml
+02-DivingIntoDeepLearningBook/Dive-into-Deep-Learning-v2/mxnet/chapter_deep-learning-computation/x-file
+02-DivingIntoDeepLearningBook/Dive-into-Deep-Learning-v2/mxnet/chapter_deep-learning-computation/x-files
+*.svg
+*.jpg
+*.pdf
+*.tiff
